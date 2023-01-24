@@ -1,9 +1,12 @@
 #include "mbed.h"
+#include "Callback.h"
 #include "interrupt.h"
 #include "SerialManager.h"
 #include "SerialProtocol.h"
 #include "memory.h"
 #include "ConfigManager.h"
+#include "LoraApp/MyLoraInterface.h"
+
 
 #define BUFF_LEN    32
 #define MSG_LEN     64
@@ -11,14 +14,26 @@
 
 Thread interruptCallBackThread;
 Thread sensorThread;
+Thread loraThread;
 ConfigManager configManager;
 EventQueue interruptCallBackQueue(32 * EVENTS_EVENT_SIZE);
+
 I2C i2c(PA_11,PA_12);
 
 
 
 
 
+
+
+
+
+
+
+
+/**
+ * Entry point for application
+ */
 int main()
 {
   
@@ -42,10 +57,22 @@ int main()
     interruptCallBackThread.start(callback(&interruptCallBackQueue, &EventQueue::dispatch_forever));
     SerialManager::getinstance()->setCallbackFunction(callback(UartReceive_it));
 
+
+    
+
     configManager.init();
     sensorThread.start(callback(&configManager, &ConfigManager::run));
 
+    LoraInterface_init(20);
+    loraThread.start(callback(LoraInterface_run));
+
     while (1) {
-        ThisThread::sleep_for(10ms);
+    ThisThread::sleep_for(10000s);
     }
+    
+
 }
+
+
+
+
