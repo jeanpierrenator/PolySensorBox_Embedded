@@ -4,9 +4,14 @@
 #include <cstdint>
 #include <map>
 #include "memory.h"
+#include "thread_Params.h"
+
+
 class ConfigManager{
 
 private: 
+
+
 enum SensorType {
     TEMP = 1,
     HUMID =2,
@@ -28,11 +33,13 @@ enum SensorID {
 };
 
 
+    //run pointer strategy
+    void (ConfigManager::*strategy_ptr)();
 
-    std::map<uint8_t, uint32_t(ConfigManager::*)()> sensorMap;
-    std::map<uint8_t, SensorAbstract *> sensorAbstractMap;
-    std::map<uint8_t, uint32_t> physicalPeriodeCurrentMap;
-    std::map<uint8_t, uint32_t> physicalPeriodeBaseMap;
+     std::map<uint8_t, uint32_t(ConfigManager::*)()> sensorMap;
+     std::map<uint8_t, SensorAbstract *> sensorAbstractMap;
+     
+    
 
     uint32_t getTemp();
     uint32_t getHumid();
@@ -68,8 +75,13 @@ enum SensorID {
     uint8_t getPhysicalForPeridodEqualToZero();
     uint32_t getNextSleepTime();
     uint32_t parseReadConfigFrame(const char * buffer);
+
+    void run_lora_push();
+    void run_lora_differ();
 public: 
     ConfigManager();
+    static std::map<uint8_t, uint32_t> physicalPeriodeBaseMap;
+    static std::map<uint8_t, uint32_t> physicalPeriodeCurrentMap;
     void init();
     void run();
 };

@@ -1,8 +1,13 @@
 #pragma once
 #include "mbed.h"
+#include "Thread.h"
 #include "lorawan/LoRaWANInterface.h"
 #include "lorawan/system/lorawan_data_structures.h"
 #include "events/EventQueue.h"
+#include"../Periph/rtc.h"
+#include "../thread_Params.h"
+#include "../ConfigManager.h"
+#include <cstring>
 
 
 #include <cstdint>
@@ -40,8 +45,9 @@ static void LoraInterface_sendMessage();
 static void LoraInterface_receiveMessage();
 
 
-int8_t LoraInterface_init(uint32_t sendPeriod);
-void LoraInterface_run();
+int8_t LoraInterface_init(const char * APP_KEY, const char * APPUUID,const char * DevUUID,uint32_t sendPeriod);
+void LoraInterface_run_timed();
+void LoraInterface_run_when_ready();
 
     
 

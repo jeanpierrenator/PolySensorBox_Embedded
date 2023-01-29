@@ -15,6 +15,16 @@ protected:
   virtual ~SensorAbstract() {
   }
 
+  static void convertFloatToUint32(float floatValue, uint32_t& uint32Value) {
+    uint32_t* floatAsInt = (uint32_t*) &floatValue;
+    uint32Value = *floatAsInt;
+    }
+
+    void convertUint32ToFloat(uint32_t uint32Value, float& floatValue) {
+    uint32_t* intAsFloat = (uint32_t*) &floatValue;
+    *intAsFloat = uint32Value;
+    }
+
 
    virtual uint32_t getTemp(){return 0;};
    virtual uint32_t getHumid(){return 0;};

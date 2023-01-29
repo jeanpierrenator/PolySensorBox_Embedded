@@ -2,8 +2,8 @@
 #include "mbed.h"
 #include "BufferedSerial.h"
 #include "SerialManager.h"
+#include "thread_Params.h"
 #include "memory.h"
-extern Thread sensorThread;
 
 static constexpr char STATUS_OK_CODE = 0xFF;
 static constexpr char STATUS_BAD_CODE = 0x00;
@@ -23,6 +23,10 @@ static constexpr char START_READ_CONFIG_STOP = 0x00;
 
 //frame 0x04
 static constexpr char READ_CONFIG_CODE = 0x04;
+
+//frame 0x05
+static constexpr char LORA_PARAMETER_CODE = 0x05;
+static constexpr char SIZE_LORA_PARAMETER_FRAME = 36;
 
 
 class StateSerialProtocol;
@@ -122,6 +126,12 @@ class Wait_for_Frame_4_response : public StateSerialProtocol {
 };
 
 class Send_Frame_4 : public StateSerialProtocol {
+     public:
+   void process(char charToProcess) override;
+};
+
+//Wait for the parametter for frame 5
+class Wait_For_Lora_parameter : public StateSerialProtocol {
      public:
    void process(char charToProcess) override;
 };

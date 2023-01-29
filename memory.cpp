@@ -1,5 +1,6 @@
 #include "memory.h"
 #include <cstdint>
+#include <cstdio>
 Memory* Memory::instance= nullptr;
 Memory::Memory(I2C * i2c)
 {
@@ -49,6 +50,30 @@ int Memory::writeLogFrame(uint8_t id, uint32_t value, uint32_t timestamp){
     offsetToWrite[0] = (offsetToWriteuint >> 8) & 0xFF;
     offsetToWrite[1] = offsetToWriteuint & 0xFF;
     writeBytes(offsetToWrite, 2, LOG_START_ADRESS);
+    return 0;
+}
+
+int Memory::writeLoraData(const char *frame){
+
+    writeBytes(frame, 35, LORA_START_ADRESS);
+
+    return 0;
+};
+
+int Memory::readLoraConfig(char * appKey,char * appUUID,char * devUUID,uint32_t * LoraPeriod){
+    char loraConfig[35];
+    readBytes(loraConfig,35,LORA_START_ADRESS);
+    for(int i = 0; i <16 ; i++){
+        appKey[i] = loraConfig[i];
+    }
+    for(int i = 0; i <8 ; i++){
+        appUUID[i] = loraConfig[i+16];
+        devUUID[i] = loraConfig[i+24];
+    }
+    *LoraPeriod = 0;
+    *LoraPeriod |= static_cast<uint32_t>(loraConfig[32]) << 16;
+    *LoraPeriod |= static_cast<uint32_t>(loraConfig[33]) << 8;
+    *LoraPeriod |= static_cast<uint32_t>(loraConfig[34]) << 0;
     return 0;
 }
 

@@ -3,6 +3,7 @@
 #include "trace_helper.h"
 #include "lora_radio_helper.h"
 #include <chrono>
+#include <cstdint>
 #include <cstdio>
 
 static EventQueue Lora_ev_queue(10*EVENTS_EVENT_SIZE);
@@ -10,22 +11,106 @@ bool connected =0;
 uint32_t period = 0;
 bool messageEndTransmit = false;
 bool receiveMessage = false;
+uint16_t packet_len = 0;
+
+static constexpr char SEND_WHEN_READY_FRAME_CODE = 0x02;
+
+static constexpr char RECEIVE_GPIO = 0x04;
+static constexpr char RECEIVE_NEW_PERIOD_FRAME = 0x05;
+static constexpr char RECEIVE_TIME_STAMPE_FRAME = 0x07;
+
+/*Protocol*/
+/* send frame*/
+void fillTxbufferWithFrame2(){
+    tx_buffer[0] = 0x02;
+    tx_buffer[1] = sizeToSendLora/5;
+
+    for(int i =0 ; i < sizeToSendLora;i++){
+       tx_buffer[i+2] =ram_sendBuffer[i];
+    }
+    packet_len = sizeToSendLora+2;
+}
 
 
-int8_t LoraInterface_init(uint32_t sendPeriod){
+/* end send frame*/
+
+/* receive frame*/
+int processFrame4(uint32_t currentStart){
+    uint8_t nbGPIO = (rx_buffer[currentStart+1]>>4) & 0x0f;
+    uint8_t state = rx_buffer[currentStart+1] & 0x01;
+
+    if(nbGPIO ==1){
+        DigitalOut led(LED1);
+        led.write(state);
+    }
+    if(nbGPIO == 2){
+        DigitalOut led(LED2);
+        led.write(state);
+    }
+    if(nbGPIO == 3){
+        DigitalOut led(LED3);
+        led.write(state);
+    }
+    return 2;
+}
+int processFrame5(uint32_t currentStart){
+    uint32_t physicalValue = rx_buffer[currentStart+1];
+    uint32_t value = 0;
+    value |= static_cast<uint32_t>(rx_buffer[currentStart+2]) << 16;
+    value |= static_cast<uint32_t>(rx_buffer[currentStart+3]) << 8;
+    value |= static_cast<uint32_t>(rx_buffer[currentStart+4]) << 0;
+    ConfigManager::physicalPeriodeBaseMap[physicalValue] = value;
+    return 5;
+}
+
+int processFrame7(uint32_t currentStart){
+    uint32_t timeStamp = 0;
+    timeStamp |= static_cast<uint32_t>(rx_buffer[currentStart+1]) << 24;
+    timeStamp |= static_cast<uint32_t>(rx_buffer[currentStart+2]) << 16;
+    timeStamp |= static_cast<uint32_t>(rx_buffer[currentStart+3]) << 8;
+    timeStamp |= static_cast<uint32_t>(rx_buffer[currentStart+4]) << 0;
+    RTC_setTime(timeStamp);
+    return 5;
+}
+void parseReaceiveFrame(){
+    uint32_t size = 0;
+    uint32_t sizeToRead = rx_buffer[0];
+    size+=1;
+    do{
+        switch (rx_buffer[size]) {
+        case RECEIVE_GPIO:
+        size += processFrame4(size);
+        break;
+        case RECEIVE_NEW_PERIOD_FRAME:
+        size+= processFrame5(size);
+        break;
+        case RECEIVE_TIME_STAMPE_FRAME:
+        size+= processFrame7(size);
+        break;
+        default:
+        size = sizeToRead+1;
+        break;
+        }
+    }while(size-1 < sizeToRead);
+
+
+}
+
+/* end receive frame*/
+
+/* end Protocol*/
+
+int8_t LoraInterface_init(const char * APP_KEY, const char * APPUUID,const char * DevUUID ,uint32_t sendPeriod){
     lorawan = new LoRaWANInterface(radio);
     period = sendPeriod;
      // setup tracing
     setup_trace();
      lorawan_connect_t connect_params;
-    unsigned char DevUUID[8] = { 0x70, 0xB3, 0xD5, 0x7E, 0xD0, 0x05, 0x9B, 0x52 };
-    unsigned char APPUUID[8] = {0x70, 0xB3, 0xD5, 0x7E, 0xD0, 0x04, 0xE3, 0xA7 };
-    unsigned char APP_KEY[16] = { 0xB3,0xF8,0x72,0xEC,0xE5,0x22,0xCE,0xEF,0xDB,0xD4,0x4F,0xC2,0xE5,0xC3,0xAB,0x13 };
         //OTAA:
     connect_params.connect_type = LORAWAN_CONNECTION_OTAA;
-    connect_params.connection_u.otaa.dev_eui = DevUUID;
-    connect_params.connection_u.otaa.app_eui = APPUUID;
-    connect_params.connection_u.otaa.app_key = APP_KEY;
+    connect_params.connection_u.otaa.dev_eui = (unsigned char *)DevUUID;
+    connect_params.connection_u.otaa.app_eui = (unsigned char *)APPUUID;
+    connect_params.connection_u.otaa.app_key = (unsigned char *)APP_KEY;
     connect_params.connection_u.otaa.nb_trials = 3;
 
     // stores the status of a call to LoRaWAN protocol
@@ -128,22 +213,15 @@ void LoraInterface_lora_event_handler(lorawan_event_t event){
 }
 
 
+
 /**
  * Sends a message to the Network Server
  */
 void LoraInterface_sendMessage()
 {
-    uint16_t packet_len;
+    
     int16_t retcode;
-    int32_t sensor_value;
-
    
-        sensor_value = 5;
-        printf("\r\n Dummy Sensor Value = %d \r\n", sensor_value);
-     
-
-    packet_len = sprintf((char *) tx_buffer, "Dummy Sensor Value is %d",
-                         sensor_value);
 
     retcode = lorawan->send(MBED_CONF_LORA_APP_PORT, tx_buffer, packet_len,
                            MSG_UNCONFIRMED_FLAG);
@@ -160,21 +238,12 @@ void LoraInterface_sendMessage()
     int flags;
     int16_t retcode = lorawan->receive(rx_buffer, sizeof(rx_buffer), port, flags);
 
-    if (retcode < 0) {
-        printf("\r\n receive() - Error code %d \r\n", retcode);
-        return;
-    }
+    parseReaceiveFrame();
 
-    printf(" RX Data on port %u (%d bytes): ", port, retcode);
-    for (uint8_t i = 0; i < retcode; i++) {
-        printf("%02x ", rx_buffer[i]);
-    }
-    printf("\r\n");
-    
     memset(rx_buffer, 0, sizeof(rx_buffer));
 }
 
-void LoraInterface_run(){
+void LoraInterface_run_timed(){
 
     int time = 0;
     while(1){
@@ -189,5 +258,34 @@ void LoraInterface_run(){
      }while(receiveMessage == false && time < 5);
     time = 0;
     }
+}
+
+
+void LoraInterface_run_when_ready(){
+
+    int time = 0;
+    while(1){
+    printf("lora wait\n");
+    
+    loraSend_mut.lock();
+    loraReady_mut.lock();
+    loraReady_mut.unlock();
+    loraSend_mut.unlock();
+    printf("lorasend\n");
+    
+    fillTxbufferWithFrame2();
+
+
+     Lora_ev_queue.call_in(1,LoraInterface_sendMessage);
+     do {
+        Lora_ev_queue.dispatch_for(std::chrono::milliseconds(1000));
+    } while(messageEndTransmit == false);
+    messageEndTransmit = false;
+     do {
+         time++;
+     }while(receiveMessage == false && time < 5);
+    time = 0;
+    }
+    receiveMessage = false;
 }
 

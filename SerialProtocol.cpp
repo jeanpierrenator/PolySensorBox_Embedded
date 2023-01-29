@@ -93,6 +93,9 @@ void Wait_for_begin_Transmit_state::process(char charToProcess) {
        if (charToProcess == START_READ_CONFIG_CODE  ) {
         SerialProtocole::TransitionTo(new Wait_for_read_config_parameter() );
       }
+      if(charToProcess == LORA_PARAMETER_CODE){
+           SerialProtocole::TransitionTo(new Wait_For_Lora_parameter() );
+      }
   }
 
    void Wait_for_config_parameter::process(char charToProcess) {
@@ -194,11 +197,20 @@ void Trame_config_start::process(char charToProcess) {
         }else{
             SerialProtocole::sendStatus(START_READ_CONFIG_CODE, STATUS_BAD_CODE);
             SerialProtocole::TransitionTo(new Wait_for_char_state() );
+        }   
+  }
+
+  //Wait for the parametter for frame 5
+    void Wait_For_Lora_parameter::process(char charToProcess) {
+       
+        tempBuff[size++] = charToProcess;
+        if(size >= SIZE_LORA_PARAMETER_FRAME){
+            //calculChecksum(tempBuff, receiveSize) == tempBuff[size-1]
+            //save config
+            //memori save
+            Memory::getInstance()->writeLoraData(tempBuff);
+            SerialProtocole::TransitionTo(new Wait_for_char_state() );
         }
         
-        
-
-        
-      
   }
 

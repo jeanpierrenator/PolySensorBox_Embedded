@@ -5,6 +5,8 @@
 /* macro -------------------------------------------------------------------- */
 #define  CONFIG_START_ADRESS 256
 #define  LOG_START_ADRESS 1024
+#define LORA_START_ADRESS 0
+
 /* variables ---------------------------------------------------------------- */
 /* class -------------------------------------------------------------------- */
 
@@ -17,10 +19,13 @@ public:
     // Write methods
     int writeConfigFrame(const char * frame);
     int writeLogFrame(uint8_t id, uint32_t value, uint32_t timestamp);
+    int writeLoraData(const char * frame);
 
     // Read methods
     int readAllConfig(const char * config);
+    int readLoraConfig(char * appKey,char * appUUID,char * devUUID,uint32_t * LoraPeriod);
     int readCurrentConfigFrame(const char * config);
+    int readAllLogFrameFrom(uint16_t start_address,const char * logs);
     int setReadPointerToTheNextFrame();
     int resetPointer();
 

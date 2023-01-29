@@ -1,6 +1,10 @@
 #include "ConfigManager.h"
 #include <cstdint>
+#include <cstdio>
 
+
+  std::map<uint8_t, uint32_t> ConfigManager::physicalPeriodeBaseMap;
+   std::map<uint8_t, uint32_t> ConfigManager::physicalPeriodeCurrentMap;
 
 ConfigManager::ConfigManager(){
     sensorMap[TEMP] = &ConfigManager::getTemp;
@@ -136,21 +140,76 @@ uint32_t ConfigManager::parseReadConfigFrame(const char * buffer){
         Memory::getInstance()->readCurrentConfigFrame(receive);
         parseReadConfigFrame(receive);
     }while(Memory::getInstance()->setReadPointerToTheNextFrame() != -1);
-
+    if(0){
+         strategy_ptr = &ConfigManager::run_lora_differ;
+    }else {
+         strategy_ptr = &ConfigManager::run_lora_push;
+    }
+   
 
  }
  void ConfigManager::run(){
+     (this->*strategy_ptr)();
+ }
+
+void ConfigManager::run_lora_differ(){
      uint8_t currentPhysical = 0;
      uint32_t sleepTime =0;
      while(1){
          sleepTime = getNextSleepTime();
          ThisThread::sleep_for(std::chrono::seconds(sleepTime));
          updateCurrentTime(sleepTime);
+
          currentPhysical = getPhysicalForPeridodEqualToZero();
          while(currentPhysical != 0){
+             sensorAbstractMap[currentPhysical]->wakeUp();
+             i2c_sem.acquire(); // Wait for the i2c to be available
              getPhysicalForID(currentPhysical);
+             i2c_sem.release(); // Release the i2c
+             sensorAbstractMap[currentPhysical]->sleep();
              currentPhysical = getPhysicalForPeridodEqualToZero();
          }
+         
      }
  }
 
+ void ConfigManager::run_lora_push(){
+     uint8_t currentPhysical = 0;
+     uint32_t sleepTime =0;
+     uint32_t currentIndex =0;
+     while(1){
+         sleepTime = getNextSleepTime();
+
+         loraSend_mut.lock();
+         loraSend_mut.unlock();
+
+         loraReady_mut.lock();
+
+         
+         ThisThread::sleep_for(std::chrono::seconds(sleepTime));
+         sizeToSendLora =0;
+         memset(ram_sendBuffer, 0, sizeof(ram_sendBuffer));
+         currentIndex = 0;
+         updateCurrentTime(sleepTime);
+
+         currentPhysical = getPhysicalForPeridodEqualToZero();
+         while(currentPhysical != 0){
+             uint32_t value =0;
+             sensorAbstractMap[currentPhysical]->wakeUp();
+             i2c_sem.acquire(); // Wait for the i2c to be available
+             value = getPhysicalForID(currentPhysical);
+             i2c_sem.release(); // Release the i2c
+             sensorAbstractMap[currentPhysical]->sleep();
+             ram_sendBuffer[currentIndex++] = currentPhysical;
+             //put uint32_t into send buffer
+            for (int i = 0; i < 4; i++) {
+                ram_sendBuffer[currentIndex++] = (value >> (8 * i)) & 0xFF;
+            }
+            currentPhysical = getPhysicalForPeridodEqualToZero();
+            sizeToSendLora += 5;
+         }
+        loraReady_mut.unlock();
+        printf("signal set\n");
+         
+     }
+ }
