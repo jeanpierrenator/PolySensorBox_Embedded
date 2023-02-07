@@ -8,6 +8,8 @@
 #include "ConfigManager.h"
 #include "LoraApp/MyLoraInterface.h"
 #include "Periph/rtc.h"
+#include "Periph/gpio.h"
+#include "errorSignal.h"
 #include <cstdint>
 #include <cstdio>
 
@@ -45,7 +47,7 @@ I2C i2c(PA_11,PA_12);
  */
 int main()
 {
-  
+    uint8_t mode =0;
     char receive[256]={0};
     char appUUID[8] ={0};
     char appKey[16] = {0};
@@ -54,18 +56,24 @@ int main()
     /* init memory */
     i2c.start();
     i2c.frequency(400000);
+    gpio_setAlim_off(1);
+    gpio_setAlim_off(2);
+    gpio_setAlim_off(3);
+
     Memory * mem = Memory::getInstance(&i2c);
-    mem->readLoraConfig(appKey, appUUID, devUUID, &loraPeriod);
+
+    mem->clearLogs();
+
+    if(mem->readLoraConfig(appKey, appUUID, devUUID, &loraPeriod)== -1){
+        memoryFaultError();
+    }
+    printf("lora periode %d \n", loraPeriod);
+    if(loraPeriod > 0){
+        mode =1;
+    }
+
     /* end init memory*/ 
-    int size  =0;
-    /*mem->resetPointer();
-    do{
-        size = mem->readCurrentConfigFrame(receive);
-        for(int i =0 ; i < size; i++){
-            printf("%c", receive[i]);
-        }
-        printf("\n");
-    }while(mem->setReadPointerToTheNextFrame() != -1);*/
+
     SerialProtocole::init();
     interruptUartCallBackThread.start(callback(&interruptCallBackQueue, &EventQueue::dispatch_forever));
     SerialManager::getinstance()->setCallbackFunction(callback(UartReceive_it));
@@ -74,16 +82,26 @@ int main()
    RTC_setTime(1674917150);
     
 
-      configManager.init();
+      if(configManager.init(mode)){
+        configurationFaultError();
+      }
       sensorThread.start(callback(&configManager, &ConfigManager::run));
+      
 
       LoraInterface_init(appKey,appUUID,devUUID,loraPeriod);
-      loraThread.start(callback(LoraInterface_run_when_ready));
+      if(mode == 0){
+          loraThread.start(callback(LoraInterface_run_when_ready));
+      }else {
+        loraThread.start(callback(LoraInterface_run_timed));
+      }
+      
+
 
     while (1) {
     ThisThread::sleep_for(5s);
     printf("%d\n", RTC_getTime() );
     }
+    
     
 
 }

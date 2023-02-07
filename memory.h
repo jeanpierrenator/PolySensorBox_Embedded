@@ -25,12 +25,14 @@ public:
     int readAllConfig(const char * config);
     int readLoraConfig(char * appKey,char * appUUID,char * devUUID,uint32_t * LoraPeriod);
     int readCurrentConfigFrame(const char * config);
-    int readAllLogFrameFrom(uint16_t start_address,const char * logs);
+    int readAllLogFrameFrom(uint16_t start_address, char * logs);
     int setReadPointerToTheNextFrame();
     int resetPointer();
 
     // Utility methods
     int clearConfig();
+    int clearLogs();
+    uint16_t getCurrentLogPointer();
     int getReadConfigOffset();
     static Memory * getInstance();
     static Memory * getInstance(I2C * i2c);

@@ -1,6 +1,7 @@
 #include "ConfigManager.h"
 #include <cstdint>
 #include <cstdio>
+#include "Periph/rtc.h"
 
 
   std::map<uint8_t, uint32_t> ConfigManager::physicalPeriodeBaseMap;
@@ -52,7 +53,7 @@ SensorAbstract * ConfigManager::getSensorWithID(uint8_t idsensor){
         return new SensorSGP30();
         break;
     default:
-        return nullptr;
+        return new SensorAbstract();
         break;
 }
 return nullptr;
@@ -117,9 +118,16 @@ uint32_t ConfigManager::parseReadConfigFrame(const char * buffer){
     uint8_t sensorID = buffer[0];
     uint8_t nbPhysical = buffer[1] & 0b111111;
     uint8_t nbline = ((buffer[1]>>6) & 0b11);
+    printf("sensorID %d \n",sensorID);
+    printf("nbPhysical %d \n",nbPhysical);
+    printf("nbline %d \n",nbline);
+    if(nbPhysical >= 20){
+        //bad config error
+        return 1;
+    }
     SensorAbstract * currentSensor = getSensorWithID(sensorID);
     currentSensor->setLine(nbline);
-
+    if(nbPhysical != 0){
     for (int i = 2; i < (nbPhysical * 4) + 2;)
             {
                 uint8_t idPhysical = buffer[i];
@@ -129,22 +137,29 @@ uint32_t ConfigManager::parseReadConfigFrame(const char * buffer){
                 physicalPeriodeBaseMap[idPhysical] = periode;
                 i += 4;
             }
+    }
     return 0;
 }
 
 
- void ConfigManager::init(){
+ uint8_t ConfigManager::init( uint8_t mode){
      char receive[256];
     Memory::getInstance()->resetPointer();
+    printf("pointer reset\n");
     do{
         Memory::getInstance()->readCurrentConfigFrame(receive);
-        parseReadConfigFrame(receive);
+        
+        if(parseReadConfigFrame(receive)){
+            return 1;
+        }
+       
     }while(Memory::getInstance()->setReadPointerToTheNextFrame() != -1);
-    if(0){
+    if(mode){
          strategy_ptr = &ConfigManager::run_lora_differ;
     }else {
          strategy_ptr = &ConfigManager::run_lora_push;
     }
+    return 0;
    
 
  }
@@ -162,9 +177,11 @@ void ConfigManager::run_lora_differ(){
 
          currentPhysical = getPhysicalForPeridodEqualToZero();
          while(currentPhysical != 0){
+             uint32_t value =0;
              sensorAbstractMap[currentPhysical]->wakeUp();
              i2c_sem.acquire(); // Wait for the i2c to be available
-             getPhysicalForID(currentPhysical);
+             value = getPhysicalForID(currentPhysical);
+             Memory::getInstance()->writeLogFrame(currentPhysical, value, RTC_getTime());
              i2c_sem.release(); // Release the i2c
              sensorAbstractMap[currentPhysical]->sleep();
              currentPhysical = getPhysicalForPeridodEqualToZero();

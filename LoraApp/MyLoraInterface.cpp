@@ -2,6 +2,7 @@
 // Application helpers
 #include "trace_helper.h"
 #include "lora_radio_helper.h"
+#include <algorithm>
 #include <chrono>
 #include <cstdint>
 #include <cstdio>
@@ -29,6 +30,29 @@ void fillTxbufferWithFrame2(){
        tx_buffer[i+2] =ram_sendBuffer[i];
     }
     packet_len = sizeToSendLora+2;
+}
+
+void fillTxbufferWithFrame1(uint16_t * currentStartLogAddress){
+    char tempbuf[256];
+
+    i2c_sem.acquire();
+    packet_len = Memory::getInstance()->readAllLogFrameFrom(*currentStartLogAddress, tempbuf);
+    *currentStartLogAddress = Memory::getInstance()->getCurrentLogPointer();
+    i2c_sem.release();
+    if(packet_len == 0){
+        //nodata to read send heartbeat 
+        tx_buffer[0] = 0x03;
+        packet_len = 1;
+    }else {
+         tx_buffer[0] = 0x01;
+        tx_buffer[1] = packet_len/9;
+    for(int32_t i = 0; i < packet_len; i++){
+        tx_buffer[i+2] = tempbuf[i];
+    }
+    packet_len = packet_len+2;
+    }
+   
+
 }
 
 
@@ -246,8 +270,13 @@ void LoraInterface_sendMessage()
 void LoraInterface_run_timed(){
 
     int time = 0;
+    uint16_t currentStartLogAddress = 0;
+    i2c_sem.acquire();
+    currentStartLogAddress = Memory::getInstance()->getCurrentLogPointer();
+    i2c_sem.release();
     while(1){
     ThisThread::sleep_for(std::chrono::seconds(period));
+     fillTxbufferWithFrame1(&currentStartLogAddress);
      Lora_ev_queue.call_in(1,LoraInterface_sendMessage);
      do {
         Lora_ev_queue.dispatch_for(std::chrono::milliseconds(1000));

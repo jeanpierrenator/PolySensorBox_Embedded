@@ -8,12 +8,13 @@ class SensorAbstract {
  private:
 
 protected:
-    SensorAbstract(){}
+   
     uint8_t line;
 
  public:
   virtual ~SensorAbstract() {
   }
+   SensorAbstract(){}
 
   static void convertFloatToUint32(float floatValue, uint32_t& uint32Value) {
     uint32_t* floatAsInt = (uint32_t*) &floatValue;

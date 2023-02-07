@@ -53,6 +53,14 @@ int Memory::writeLogFrame(uint8_t id, uint32_t value, uint32_t timestamp){
     return 0;
 }
 
+uint16_t Memory::getCurrentLogPointer(){
+    char offsetToWrite[2];
+    uint16_t offsetToWriteuint =0;
+    readBytes(offsetToWrite,2,LOG_START_ADRESS);
+    offsetToWriteuint = (offsetToWrite[0]<<8) + offsetToWrite[1];
+    return offsetToWriteuint ;
+}
+
 int Memory::writeLoraData(const char *frame){
 
     writeBytes(frame, 35, LORA_START_ADRESS);
@@ -62,7 +70,12 @@ int Memory::writeLoraData(const char *frame){
 
 int Memory::readLoraConfig(char * appKey,char * appUUID,char * devUUID,uint32_t * LoraPeriod){
     char loraConfig[35];
-    readBytes(loraConfig,35,LORA_START_ADRESS);
+    int ret = readBytes(loraConfig,35,LORA_START_ADRESS);
+    printf("ret %d\n",ret);
+    if(ret != 0){
+        //read error
+        return -1;
+    }
     for(int i = 0; i <16 ; i++){
         appKey[i] = loraConfig[i];
     }
@@ -87,7 +100,12 @@ int Memory::readAllConfig(const char *config){
 
     return sizeToRead[0];
 }
-
+int Memory::readAllLogFrameFrom(uint16_t start_address, char * logs){
+    uint8_t sizeToRead = 0;
+    sizeToRead = getCurrentLogPointer() - start_address;
+    readBytes(logs, sizeToRead, LOG_START_ADRESS+start_address+2);
+    return sizeToRead;
+}
 int Memory::readCurrentConfigFrame(const char *config){
     char getSize[2] ={0};
     int size = 0;
@@ -107,6 +125,8 @@ int Memory::readCurrentConfigFrame(const char *config){
     }
     return size;   
 }
+
+
 
 int Memory::setReadPointerToTheNextFrame(){
     char getSize[2] ={0};
@@ -151,6 +171,11 @@ int Memory::getFrame2Size(const char *frame){
 int Memory::clearConfig(){
     char reset = 0;
     return writeBytes(&reset, 1, CONFIG_START_ADRESS);
+    
+}
+int Memory::clearLogs(){
+    char reset[2] = {0,0};
+    return writeBytes(reset, 2, LOG_START_ADRESS);
     
 }
 

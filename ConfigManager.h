@@ -82,6 +82,6 @@ public:
     ConfigManager();
     static std::map<uint8_t, uint32_t> physicalPeriodeBaseMap;
     static std::map<uint8_t, uint32_t> physicalPeriodeCurrentMap;
-    void init();
+    uint8_t init(uint8_t mode);
     void run();
 };

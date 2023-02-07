@@ -10,7 +10,7 @@ uint32_t SensorBME280::getTemp(){
         // Measurment time = 1,25 + (2,3xt_OS) + (2,3xP_OS + 0,575) + (2,3xH_OS + 0,575) = 9,3ms -> 10ms
         ThisThread::sleep_for(100ms);
         ret = BME280::getInstance()->getTemperature(&temp);
-    printf("temp\n");
+    printf("temp %d\n", (uint32_t)temp);
     
     convertFloatToUint32(temp,  tempUint);
     return tempUint;
