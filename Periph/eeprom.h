@@ -67,16 +67,16 @@
 class _24LCXXX
 {
 private:
-    int _i2c_address;
+    int32_t _i2c_address;
     I2C *_i2c;
     bool _debug;
 
 public:
-    _24LCXXX(I2C *i2c, const int address=I2C_ADDR_24LCXXX );
-    int byte_write( int mem_addr, char data );
-    int nbyte_write( int mem_addr, void *data, int size );
-    int page_write( int mem_addr, char *data );
-    int nbyte_read( int mem_addr, void *data, int size );
+    _24LCXXX(I2C *i2c, const int32_t address=I2C_ADDR_24LCXXX );
+    int32_t byte_write( int32_t mem_addr, char data );
+    int32_t nbyte_write( int32_t mem_addr, void *data, int32_t size );
+    int32_t page_write( int32_t mem_addr, char *data );
+    int32_t nbyte_read( int32_t mem_addr, void *data, int32_t size );
 };
 
 #endif /* __24LCXXX_H_ */

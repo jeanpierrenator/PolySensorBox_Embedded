@@ -45,15 +45,15 @@
 /* member fanctions --------------------------------------------------------- */
 
 // Constractor
-_24LCXXX::_24LCXXX(I2C *i2c, const int address):
+_24LCXXX::_24LCXXX(I2C *i2c, const int32_t address):
     _i2c_address(address<<1), _i2c(i2c), _debug(false)
 {
 }
 
 
-int _24LCXXX::byte_write( int mem_addr, char data )
+int32_t _24LCXXX::byte_write( int32_t mem_addr, char data )
 {
-    int res;
+    int32_t res;
     char buf[3];
 
     buf[0] = (0xff00 & mem_addr)>>8;        // Write Address High byte set
@@ -67,10 +67,10 @@ int _24LCXXX::byte_write( int mem_addr, char data )
     return res;
 }
 
-int _24LCXXX::nbyte_write( int mem_addr, void *data, int size )
+int32_t _24LCXXX::nbyte_write( int32_t mem_addr, void *data, int32_t size )
 {
-    int  i;
-    int  res;
+    int32_t  i;
+    int32_t  res;
     char buf[3];
     char *p;
 
@@ -100,10 +100,10 @@ int _24LCXXX::nbyte_write( int mem_addr, void *data, int size )
     return res;
 }
 
-int _24LCXXX::page_write( int mem_addr, char *data )
+int32_t _24LCXXX::page_write( int32_t mem_addr, char *data )
 {
-    int i;
-    int res;
+    int32_t i;
+    int32_t res;
     char buf[PAGE_SIZE_24LCXXX+2];
 
     buf[0] = (0xff00 & mem_addr)>>8;        // Write Address High byte set
@@ -119,9 +119,9 @@ int _24LCXXX::page_write( int mem_addr, char *data )
 }
 
 
-int _24LCXXX::nbyte_read( int mem_addr, void *data, int size )
+int32_t _24LCXXX::nbyte_read( int32_t mem_addr, void *data, int32_t size )
 {
-    int res;
+    int32_t res;
     char buf[2];
 
     buf[0] = (0xff00 & mem_addr)>>8;        // Read Address High byte set

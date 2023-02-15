@@ -3,10 +3,15 @@
 #include "SensorsLibrary/activeSensorInclude.h"
 #include <cstdint>
 #include <map>
-#include "memory.h"
-class ConfigManager{
+#include "Periph/memory.h"
+#include "thread_Params.h"
+
+
+class SensorManager{
 
 private: 
+
+
 enum SensorType {
     TEMP = 1,
     HUMID =2,
@@ -24,15 +29,18 @@ enum SensorID {
     BME680_ID = 3,
     SI1145_ID = 4,
     VEML7700_ID = 5,
-    SGP30_ID = 6
+    SGP30_ID = 6,
+    SCD41 = 7,
 };
 
 
+    //run pointer strategy
+    void (SensorManager::*strategy_ptr)();
 
-    std::map<uint8_t, uint32_t(ConfigManager::*)()> sensorMap;
-    std::map<uint8_t, SensorAbstract *> sensorAbstractMap;
-    std::map<uint8_t, uint32_t> physicalPeriodeCurrentMap;
-    std::map<uint8_t, uint32_t> physicalPeriodeBaseMap;
+     std::map<uint8_t, uint32_t(SensorManager::*)()> sensorMap;
+     std::map<uint8_t, SensorAbstract *> sensorAbstractMap;
+     
+    
 
     uint32_t getTemp();
     uint32_t getHumid();
@@ -68,8 +76,13 @@ enum SensorID {
     uint8_t getPhysicalForPeridodEqualToZero();
     uint32_t getNextSleepTime();
     uint32_t parseReadConfigFrame(const char * buffer);
+
+    void run_lora_push();
+    void run_lora_differ();
 public: 
-    ConfigManager();
-    void init();
+    SensorManager();
+    static std::map<uint8_t, uint32_t> physicalPeriodeBaseMap;
+    static std::map<uint8_t, uint32_t> physicalPeriodeCurrentMap;
+    uint8_t init(uint8_t mode);
     void run();
 };
