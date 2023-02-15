@@ -1,5 +1,6 @@
 #include "sensorVEML7700.h"
 #include <cstdint>
+#include <cstdio>
 
 uint32_t SensorVEML7700::getLux(){
     int res;
@@ -7,6 +8,7 @@ uint32_t SensorVEML7700::getLux(){
         uint16_t value;
         res += VEML7700::getInstance()->getALS(value);
         convertFloatToUint32((float)(value/10),luxUint);
+        printf(" lux %d \n",value);
         return luxUint;
 }
 int32_t SensorVEML7700::init(){

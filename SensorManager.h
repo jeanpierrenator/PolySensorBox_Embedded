@@ -3,11 +3,11 @@
 #include "SensorsLibrary/activeSensorInclude.h"
 #include <cstdint>
 #include <map>
-#include "memory.h"
+#include "Periph/memory.h"
 #include "thread_Params.h"
 
 
-class ConfigManager{
+class SensorManager{
 
 private: 
 
@@ -29,14 +29,15 @@ enum SensorID {
     BME680_ID = 3,
     SI1145_ID = 4,
     VEML7700_ID = 5,
-    SGP30_ID = 6
+    SGP30_ID = 6,
+    SCD41 = 7,
 };
 
 
     //run pointer strategy
-    void (ConfigManager::*strategy_ptr)();
+    void (SensorManager::*strategy_ptr)();
 
-     std::map<uint8_t, uint32_t(ConfigManager::*)()> sensorMap;
+     std::map<uint8_t, uint32_t(SensorManager::*)()> sensorMap;
      std::map<uint8_t, SensorAbstract *> sensorAbstractMap;
      
     
@@ -79,7 +80,7 @@ enum SensorID {
     void run_lora_push();
     void run_lora_differ();
 public: 
-    ConfigManager();
+    SensorManager();
     static std::map<uint8_t, uint32_t> physicalPeriodeBaseMap;
     static std::map<uint8_t, uint32_t> physicalPeriodeCurrentMap;
     uint8_t init(uint8_t mode);

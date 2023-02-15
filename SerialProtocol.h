@@ -3,7 +3,8 @@
 #include "BufferedSerial.h"
 #include "SerialManager.h"
 #include "thread_Params.h"
-#include "memory.h"
+#include "Periph/memory.h"
+#include <cstdint>
 
 static constexpr char STATUS_OK_CODE = 0xFF;
 static constexpr char STATUS_BAD_CODE = 0x00;
@@ -28,20 +29,22 @@ static constexpr char READ_CONFIG_CODE = 0x04;
 static constexpr char LORA_PARAMETER_CODE = 0x05;
 static constexpr char SIZE_LORA_PARAMETER_FRAME = 36;
 
-
+// Forward declarations for the StateSerialProtocol class and its subclasses
 class StateSerialProtocol;
 class Wait_for_begin_Transmit_state;
 class Wait_for_char_state;
-class SerialProtocole
+
+
+class SerialProtocol
 {
 
 private:
 
-    static char recvBuff[1];
-    static int recvLen;
+      static char recvBuff[1];   // Define a static char array to store received data
+    static int32_t recvLen;    // Define a static integer to store the length of the received data
+    static StateSerialProtocol* _state;  // Define a pointer to the current state of the SerialProtocol
 
-    static void process(char charToProcess);
-    static StateSerialProtocol * _state;
+    static void process(char charToProcess); // function to processe input data
     
 
 
@@ -50,11 +53,14 @@ private:
 public:
 
 
-   SerialProtocole();
+   SerialProtocol();
+
    static void init(void);
    static void onSerialReceived(void);
    
    static void TransitionTo(StateSerialProtocol *state);
+
+   //Response Frame
    static void sendBeginRes(void);
    static void sendStatus(char code,char status);
    static void sendChar(char code);
@@ -67,15 +73,15 @@ class StateSerialProtocol {
    * @var Context
    */
  protected:
-  int size = 0;
-  int receiveSize =0;
+  int32_t size = 0;
+  int32_t receiveSize =0;
   char tempBuff[255];
 
  public:
   virtual ~StateSerialProtocol() {
   }
-
-  uint8_t calculChecksum(const char * buffer,int size);
+  //function to compute checksum of an input buffer 
+  uint8_t calculChecksum(const char * buffer,int32_t size);
 
 
   virtual void process(char charToProcess) = 0;

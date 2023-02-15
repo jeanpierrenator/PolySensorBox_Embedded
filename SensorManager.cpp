@@ -1,27 +1,27 @@
-#include "ConfigManager.h"
+#include "SensorManager.h"
 #include <cstdint>
 #include <cstdio>
 #include "Periph/rtc.h"
 
 
-  std::map<uint8_t, uint32_t> ConfigManager::physicalPeriodeBaseMap;
-   std::map<uint8_t, uint32_t> ConfigManager::physicalPeriodeCurrentMap;
+  std::map<uint8_t, uint32_t> SensorManager::physicalPeriodeBaseMap;
+   std::map<uint8_t, uint32_t> SensorManager::physicalPeriodeCurrentMap;
 
-ConfigManager::ConfigManager(){
-    sensorMap[TEMP] = &ConfigManager::getTemp;
-    sensorMap[HUMID] = &ConfigManager::getHumid;
-    sensorMap[LUX] = &ConfigManager::getLux;
-    sensorMap[ECO2] = &ConfigManager::getECo2;
-    sensorMap[TOVC] = &ConfigManager::getTOVC;
-    sensorMap[CO2] = &ConfigManager::getCo2;
-    sensorMap[PRESSION] = &ConfigManager::getPression;
-    sensorMap[UV] = &ConfigManager::getUV;
+SensorManager::SensorManager(){
+    sensorMap[TEMP] = &SensorManager::getTemp;
+    sensorMap[HUMID] = &SensorManager::getHumid;
+    sensorMap[LUX] = &SensorManager::getLux;
+    sensorMap[ECO2] = &SensorManager::getECo2;
+    sensorMap[TOVC] = &SensorManager::getTOVC;
+    sensorMap[CO2] = &SensorManager::getCo2;
+    sensorMap[PRESSION] = &SensorManager::getPression;
+    sensorMap[UV] = &SensorManager::getUV;
 
 
     
 }
 
-uint32_t ConfigManager::getPhysicalForID(uint8_t idPhysical){
+uint32_t SensorManager::getPhysicalForID(uint8_t idPhysical){
     
     auto it = sensorMap.find(idPhysical);
     if (it != sensorMap.end()) {
@@ -31,7 +31,7 @@ uint32_t ConfigManager::getPhysicalForID(uint8_t idPhysical){
     }
 }
 
-SensorAbstract * ConfigManager::getSensorWithID(uint8_t idsensor){
+SensorAbstract * SensorManager::getSensorWithID(uint8_t idsensor){
     switch (idsensor) {
 
     case SCD30_ID:
@@ -60,33 +60,33 @@ return nullptr;
 }
 
 
-uint32_t ConfigManager::getTemp() {
+uint32_t SensorManager::getTemp() {
     return sensorAbstractMap[TEMP]->getTemp();
 }
-uint32_t ConfigManager::getHumid() {
+uint32_t SensorManager::getHumid() {
     return sensorAbstractMap[HUMID]->getHumid();
 }
-uint32_t ConfigManager::getLux() {
+uint32_t SensorManager::getLux() {
     return sensorAbstractMap[LUX]->getLux();
 }
-uint32_t ConfigManager::getECo2() {
+uint32_t SensorManager::getECo2() {
     return sensorAbstractMap[ECO2]->getECo2();
 }
-uint32_t ConfigManager::getTOVC() {
+uint32_t SensorManager::getTOVC() {
     return sensorAbstractMap[TOVC]->getTOVC();
 }
-uint32_t ConfigManager::getCo2() {
+uint32_t SensorManager::getCo2() {
     return sensorAbstractMap[CO2]->getCo2();
 }
-uint32_t ConfigManager::getPression() {
+uint32_t SensorManager::getPression() {
     return sensorAbstractMap[PRESSION]->getPression();
 }
-uint32_t ConfigManager::getUV() {
+uint32_t SensorManager::getUV() {
     return sensorAbstractMap[UV]->getUV();
 }
 
 
-uint32_t ConfigManager::getNextSleepTime() {
+uint32_t SensorManager::getNextSleepTime() {
     auto it = std::min_element(physicalPeriodeCurrentMap.begin(), physicalPeriodeCurrentMap.end(),
     [](auto const &lhs, auto const &rhs){
         return lhs.second < rhs.second;
@@ -94,13 +94,13 @@ uint32_t ConfigManager::getNextSleepTime() {
     return it->second;
 }
 
-void ConfigManager::updateCurrentTime(uint32_t time) {
+void SensorManager::updateCurrentTime(uint32_t time) {
     for (auto &element : physicalPeriodeCurrentMap) {
         element.second -= time;
     }
 }
 
-uint8_t ConfigManager::getPhysicalForPeridodEqualToZero() {
+uint8_t SensorManager::getPhysicalForPeridodEqualToZero() {
     for (auto  &element : physicalPeriodeCurrentMap) {
         if (element.second <= 0) {
             element.second = physicalPeriodeBaseMap[element.first];
@@ -114,7 +114,7 @@ uint8_t ConfigManager::getPhysicalForPeridodEqualToZero() {
 
 
     
-uint32_t ConfigManager::parseReadConfigFrame(const char * buffer){
+uint32_t SensorManager::parseReadConfigFrame(const char * buffer){
     uint8_t sensorID = buffer[0];
     uint8_t nbPhysical = buffer[1] & 0b111111;
     uint8_t nbline = ((buffer[1]>>6) & 0b11);
@@ -128,10 +128,10 @@ uint32_t ConfigManager::parseReadConfigFrame(const char * buffer){
     SensorAbstract * currentSensor = getSensorWithID(sensorID);
     currentSensor->setLine(nbline);
     if(nbPhysical != 0){
-    for (int i = 2; i < (nbPhysical * 4) + 2;)
+    for (int32_t i = 2; i < (nbPhysical * 4) + 2;)
             {
                 uint8_t idPhysical = buffer[i];
-                int periode = (int)((buffer[i + 1]<<16) + (buffer[i + 2] << 8) + buffer[i + 3]);
+                int32_t periode = (int32_t)((buffer[i + 1]<<16) + (buffer[i + 2] << 8) + buffer[i + 3]);
                 sensorAbstractMap[idPhysical] = currentSensor ;
                 physicalPeriodeCurrentMap[idPhysical] = periode;
                 physicalPeriodeBaseMap[idPhysical] = periode;
@@ -142,7 +142,7 @@ uint32_t ConfigManager::parseReadConfigFrame(const char * buffer){
 }
 
 
- uint8_t ConfigManager::init( uint8_t mode){
+ uint8_t SensorManager::init( uint8_t mode){
      char receive[256];
     Memory::getInstance()->resetPointer();
     printf("pointer reset\n");
@@ -155,19 +155,19 @@ uint32_t ConfigManager::parseReadConfigFrame(const char * buffer){
        
     }while(Memory::getInstance()->setReadPointerToTheNextFrame() != -1);
     if(mode){
-         strategy_ptr = &ConfigManager::run_lora_differ;
+         strategy_ptr = &SensorManager::run_lora_differ;
     }else {
-         strategy_ptr = &ConfigManager::run_lora_push;
+         strategy_ptr = &SensorManager::run_lora_push;
     }
     return 0;
    
 
  }
- void ConfigManager::run(){
+ void SensorManager::run(){
      (this->*strategy_ptr)();
  }
 
-void ConfigManager::run_lora_differ(){
+void SensorManager::run_lora_differ(){
      uint8_t currentPhysical = 0;
      uint32_t sleepTime =0;
      while(1){
@@ -190,7 +190,7 @@ void ConfigManager::run_lora_differ(){
      }
  }
 
- void ConfigManager::run_lora_push(){
+ void SensorManager::run_lora_push(){
      uint8_t currentPhysical = 0;
      uint32_t sleepTime =0;
      uint32_t currentIndex =0;
@@ -219,7 +219,7 @@ void ConfigManager::run_lora_differ(){
              sensorAbstractMap[currentPhysical]->sleep();
              ram_sendBuffer[currentIndex++] = currentPhysical;
              //put uint32_t into send buffer
-            for (int i = 0; i < 4; i++) {
+            for (int32_t i = 0; i < 4; i++) {
                 ram_sendBuffer[currentIndex++] = (value >> (8 * i)) & 0xFF;
             }
             currentPhysical = getPhysicalForPeridodEqualToZero();

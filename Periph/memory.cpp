@@ -9,7 +9,7 @@ Memory::Memory(I2C * i2c)
 
 
 
-int Memory::writeConfigFrame(const char *frame){
+int32_t Memory::writeConfigFrame(const char *frame){
     int32_t size  =0;
     char offsetToWrite[1];
 
@@ -27,7 +27,7 @@ int Memory::writeConfigFrame(const char *frame){
     }
     return 0;
 }
-int Memory::writeLogFrame(uint8_t id, uint32_t value, uint32_t timestamp){
+int32_t Memory::writeLogFrame(uint8_t id, uint32_t value, uint32_t timestamp){
     int32_t size  =0;
     char offsetToWrite[2];
     char dataframe[9];
@@ -61,25 +61,25 @@ uint16_t Memory::getCurrentLogPointer(){
     return offsetToWriteuint ;
 }
 
-int Memory::writeLoraData(const char *frame){
+int32_t Memory::writeLoraData(const char *frame){
 
     writeBytes(frame, 35, LORA_START_ADRESS);
 
     return 0;
 };
 
-int Memory::readLoraConfig(char * appKey,char * appUUID,char * devUUID,uint32_t * LoraPeriod){
+int32_t Memory::readLoraConfig(char * appKey,char * appUUID,char * devUUID,uint32_t * LoraPeriod){
     char loraConfig[35];
-    int ret = readBytes(loraConfig,35,LORA_START_ADRESS);
+    int32_t ret = readBytes(loraConfig,35,LORA_START_ADRESS);
     printf("ret %d\n",ret);
     if(ret != 0){
         //read error
         return -1;
     }
-    for(int i = 0; i <16 ; i++){
+    for(int32_t i = 0; i <16 ; i++){
         appKey[i] = loraConfig[i];
     }
-    for(int i = 0; i <8 ; i++){
+    for(int32_t i = 0; i <8 ; i++){
         appUUID[i] = loraConfig[i+16];
         devUUID[i] = loraConfig[i+24];
     }
@@ -92,7 +92,7 @@ int Memory::readLoraConfig(char * appKey,char * appUUID,char * devUUID,uint32_t 
 
 
 
-int Memory::readAllConfig(const char *config){
+int32_t Memory::readAllConfig(const char *config){
     char sizeToRead[1];
 
     readBytes(sizeToRead,1,CONFIG_START_ADRESS);
@@ -100,15 +100,15 @@ int Memory::readAllConfig(const char *config){
 
     return sizeToRead[0];
 }
-int Memory::readAllLogFrameFrom(uint16_t start_address, char * logs){
+int32_t Memory::readAllLogFrameFrom(uint16_t start_address, char * logs){
     uint8_t sizeToRead = 0;
     sizeToRead = getCurrentLogPointer() - start_address;
     readBytes(logs, sizeToRead, LOG_START_ADRESS+start_address+2);
     return sizeToRead;
 }
-int Memory::readCurrentConfigFrame(const char *config){
+int32_t Memory::readCurrentConfigFrame(const char *config){
     char getSize[2] ={0};
-    int size = 0;
+    int32_t size = 0;
     char currentSize[1] = {0};
     readBytes(currentSize,1,CONFIG_START_ADRESS);
 
@@ -128,10 +128,10 @@ int Memory::readCurrentConfigFrame(const char *config){
 
 
 
-int Memory::setReadPointerToTheNextFrame(){
+int32_t Memory::setReadPointerToTheNextFrame(){
     char getSize[2] ={0};
     char currentSize[1] = {0};
-    int size = 0;
+    int32_t size = 0;
     readBytes(currentSize,1,CONFIG_START_ADRESS);
     readBytes(getSize, 2, CONFIG_START_ADRESS+1+readConfigOffset);
     size = getFrame2Size(getSize);
@@ -146,21 +146,21 @@ int Memory::setReadPointerToTheNextFrame(){
   return 0;  
 }
 
-int Memory::resetPointer(){
+int32_t Memory::resetPointer(){
     readConfigOffset = 0;
     return 0;
 }
 
 
-int Memory::writeBytes(const char * data ,uint8_t size, uint32_t address ){
+int32_t Memory::writeBytes(const char * data ,uint8_t size, uint32_t address ){
    return eeprom->nbyte_write(address, (void *)data,  size);
 }
 
-int Memory::readBytes(const char * data ,uint8_t size, uint32_t address){
+int32_t Memory::readBytes(const char * data ,uint8_t size, uint32_t address){
     return eeprom->nbyte_read(address,(void *)data,  size);
 }
 
-int Memory::getFrame2Size(const char *frame){
+int32_t Memory::getFrame2Size(const char *frame){
     if(sizeof(frame)>=1){
         // compute size of drame 2 
         return (((uint8_t)frame[1] & 0b00111111)*4)+2;
@@ -168,12 +168,12 @@ int Memory::getFrame2Size(const char *frame){
     return -1;
 
 }
-int Memory::clearConfig(){
+int32_t Memory::clearConfig(){
     char reset = 0;
     return writeBytes(&reset, 1, CONFIG_START_ADRESS);
     
 }
-int Memory::clearLogs(){
+int32_t Memory::clearLogs(){
     char reset[2] = {0,0};
     return writeBytes(reset, 2, LOG_START_ADRESS);
     

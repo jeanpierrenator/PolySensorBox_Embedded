@@ -6,7 +6,8 @@
 #include "events/EventQueue.h"
 #include"../Periph/rtc.h"
 #include "../thread_Params.h"
-#include "../ConfigManager.h"
+#include "../SensorManager.h"
+#include "../errorSignal.h"
 #include <cstring>
 
 
@@ -44,8 +45,11 @@ static void LoraInterface_lora_event_handler(lorawan_event_t event);
 static void LoraInterface_sendMessage();
 static void LoraInterface_receiveMessage();
 
+void LoraInterface_connectedTest();
+void LoraInterface_resetLora();
 
-int8_t LoraInterface_init(const char * APP_KEY, const char * APPUUID,const char * DevUUID,uint32_t sendPeriod);
+
+int8_t LoraInterface_init(uint8_t * APPKEY,  uint8_t * APPUUID, uint8_t * DevUUID,uint32_t sendPeriod);
 void LoraInterface_run_timed();
 void LoraInterface_run_when_ready();
 

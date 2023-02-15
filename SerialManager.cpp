@@ -1,13 +1,13 @@
 #include "SerialManager.h"
 
 SerialManager* SerialManager::_instance= nullptr;
-int SerialManager::write(const void * Buffer, int size)
+int32_t SerialManager::write(const void * Buffer, int32_t size)
 {
  
  return serial_port->write(Buffer, size); 
 }
 
-int SerialManager::read( void * Buffer, int size)
+int32_t SerialManager::read( void * Buffer, int32_t size)
 {
  return serial_port->read(Buffer, size);
 }
